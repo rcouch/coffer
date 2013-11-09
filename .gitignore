@@ -1,0 +1,27 @@
+*.beam
+*.gz
+*.tpl
+*.o
+*.lo
+*.la
+*.m4
+*.in
+*~
+*.orig
+*.rej
+erl_crash.dump
+*.diff
+.DS_Store
+*.dSYM
+*.sw*
+*.gz
+
+# coffer specific
+build
+
+# rebar
+thirdparty/rebar/rebar
+thirdparty/rebar/ebin
+thirdparty/rebar/inttest/rt.work
+rt.work
+thirdparty/rebar/.test
