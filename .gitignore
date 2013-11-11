@@ -29,7 +29,6 @@ ebin
 
 # rebar
 thirdparty/rebar/rebar
-thirdparty/rebar/ebin
 thirdparty/rebar/inttest/rt.work
 rt.work
 thirdparty/rebar/.test
