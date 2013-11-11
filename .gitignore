@@ -18,6 +18,12 @@ erl_crash.dump
 
 # coffer specific
 build
+dialyzer.plt
+.eunit
+apps/coffer_blobserver/.eunit
+apps/coffer_common/.eunit
+ebin
+
 
 # rebar
 thirdparty/rebar/rebar
