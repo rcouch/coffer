@@ -14,7 +14,7 @@ Erlang HTTP Server
 - MIT
 
 
-## ranch 
+## ranch
 
 Erlang Socket acceptor pool for TCP protocols
 
@@ -41,3 +41,22 @@ Erlang reltool utility functionality application
 - commit 1c71fb77a678bb8da4e27e016605988cab55dfb0 (v1.3.0)
 - Sat Nov  9 22:05:44 CET 2013
 - BSD
+
+## jsx
+
+an erlang application for consuming, producing and manipulating json.
+inspired by yajl
+
+- https://github.com/talentdeficit/jsx
+- commit 6b189d35d3ec22902f991c80155ede2c2ed6675d (v1.4.4)
+- Tue Nov 12 19:49:22 CET 2013
+- MIT
+
+## lager
+
+A logging framework
+
+- https://github.com/basho/lager
+- commit ad400896af5b1ad8b4f7a4d34e609b5a990640bb (v2.0.1)
+- Tue Nov 12 22:38:23 CET 2013
+- Apache 2

@@ -22,7 +22,9 @@ compile: rebar
 		-d $(BUILDDIR)/thirdparty/cowboy/src \
 		-d $(BUILDDIR)/thirdparty/cowboy/test \
 		-d $(BUILDDIR)/thirdparty/ranch/src \
-		-d $(BUILDDIR)/thirdparty/ranch/test
+		-d $(BUILDDIR)/thirdparty/ranch/test \
+		-d $(BUILDDIR)/thirdparty/jsx/src \
+		-d $(BUILDDIR)/thirdparty/lager/src
 	@echo "==> build coffer"
 	@(cd $(BUILDDIR) && \
 		$(ESCRIPT) rebar -C $(CURRENT)/rebar.config compile || exit 0)
@@ -44,7 +46,9 @@ dev: rebar
 		-d $(BUILDDIR)/thirdparty/cowboy/src \
 		-d $(BUILDDIR)/thirdparty/cowboy/test \
 		-d $(BUILDDIR)/thirdparty/ranch/src \
-		-d $(BUILDDIR)/thirdparty/ranch/test
+		-d $(BUILDDIR)/thirdparty/ranch/test \
+		-d $(BUILDDIR)/thirdparty/jsx/src \
+		-d $(BUILDDIR)/thirdparty/lager/src
 	@echo "==> build coffer"
 	@(cd $(BUILDDIR) && \
 		$(ESCRIPT) rebar -C $(CURRENT)/rebar.config compile || exit 0)
@@ -61,7 +65,9 @@ dialyze: dialyzer.plt
 			apps/coffer_blobserver/ebin/ \
 			apps/coffer_common/ebin/ \
 			thirdparty/cowboy/ebin/ \
-			thirdparty/ranch/ebin/ || exit 0)
+			thirdparty/ranch/ebin/ \
+			thirdparty/jsx/ebin/ \
+			thirdparty/lager/ebin/ || exit 0)
 
 dialyzer: dialyze
 
