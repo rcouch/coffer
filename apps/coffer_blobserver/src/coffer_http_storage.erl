@@ -85,7 +85,7 @@ enumerate(Storage, Req) ->
 do_enumerate(_, _, _, Count, Limit) when Count > Limit ->
     ok;
 do_enumerate({ReaderFun, State}, ChunkFun, Pre, Count, Limit) ->
-    case ChunkFun(State) of
+    case ReaderFun(State) of
         {ok, {BlobRef, Size}, NewState} ->
             Json = cf_jsx:encode([{<<"blobref">>, BlobRef},
                                   {<<"size">>, Size}]),
