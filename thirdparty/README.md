@@ -60,3 +60,12 @@ A logging framework
 - commit ad400896af5b1ad8b4f7a4d34e609b5a990640bb (v2.0.1)
 - Tue Nov 12 22:38:23 CET 2013
 - Apache 2
+
+## goldrush
+
+Small, Fast event processing and monitoring 
+
+- https://github.com/DeadZen/goldrush/
+- commit 1d883423ac360b3536ca52dc733a0164bacf3109 (v0.1.5)
+- Wed Nov 13 18:38:51 CET 2013
+- MIT

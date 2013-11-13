@@ -1,3 +1,8 @@
+%%% -*- erlang -*-
+%%%
+%%% This file is part of coffer released under the Apache license 2.
+%%% See the NOTICE for more information.
+%%%
 -module(coffer_http_storage).
 
 -export([init/3]).
@@ -12,7 +17,7 @@ init(_Transport, Req, []) ->
 handle(Req, State) ->
     {Method, Req2} = cf_cowboy_req:method(Req),
     {StorageName, Req3} = cf_cowboy_req:binding(storage, Req2),
-    {ok, Req4} = case coffer_blobserver:open_storage(StorageName) of
+    {ok, Req4} = case coffer_blobserver:get_storage(StorageName) of
         {ok, Storage} ->
              maybe_process(Method, Storage, Req3);
         {error, not_found} ->
