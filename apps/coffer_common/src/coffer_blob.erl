@@ -15,15 +15,15 @@
 blob_path(Root, BlobRef) ->
     case coffer_blob:parse_blobref(BlobRef) of
         error ->
-            {error, invalid_blobref};
+            error;
         {HashType, Hash} ->
             %% we store the hash in /<root>/<type>/<a>/<b>/<c>/<rest>
             << A:1/binary, B:1/binary, C:1/binary, FName/binary >> = Hash,
-            {ok, filename:join([Root, HashType, A, B, C, FName])}
+            filename:join([Root, HashType, A, B, C, FName])
     end.
 
 from_path(Root, Path) ->
-    [_, RelPath] = re:split(Path, Root, [{return, list}]),
+    [_, RelPath] = re:split(Path, Root, [{return, list}, {parts,2}]),
     [HashType|Rest] = string:tokens(RelPath, "/"),
     iolist_to_binary([HashType, "-", [C || C <- Rest]]).
 
@@ -33,7 +33,7 @@ parse_blobref(BlobRef) ->
     case re:run(BlobRef, Re, [{capture, all, binary}]) of
         nomatch ->
             error;
-        {match, [_, HashType, Hash]} when length(Hash) >= 4 ->
+        {match, [_, HashType, Hash]} when size(Hash) >= 4 ->
             {HashType, Hash};
         _ ->
             error
@@ -41,10 +41,10 @@ parse_blobref(BlobRef) ->
 
 validate_blobref(BlobRef) ->
     Re = blob_regexp(),
-    case re:run(BlobRef, Re, [{capture, none}]) of
+    case re:run(BlobRef, Re, [{capture, all, binary}]) of
         nomatch ->
             error;
-        {match, [_, _HashType, Hash]} when length(Hash) >= 4 ->
+        {match, [_, _HashType, Hash]} when size(Hash) >= 4 ->
             ok;
         _ ->
             error

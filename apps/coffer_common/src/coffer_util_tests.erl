@@ -12,7 +12,6 @@
 
 propmerge_test() ->
     ?assertMatch([{a, 1}, {b, 2}], coffer_util:propmerge([{a, 1}], [{b,2}])),
-    ?assertMatch([{a, 1}, {b, 3}], coffer_util:propmerge([{a, 1}, {b, 2}],
-                                                         [{b, 3}])).
+    ?assertMatch([{a, 1}, {b, 3}], coffer_util:propmerge([{b, 3}], [{a, 1}, {b, 2}])).
 
 -endif.
