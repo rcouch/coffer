@@ -46,12 +46,12 @@ parse_uri(Uri, Type) ->
 %% @doc return all supported storage scheme
 storage_scheme() ->
     Defaults = application:get_env(coffer_blobserver, backends),
-    coffer_util:propmerge(Defaults, get_config(storage_backends, [])).
+    coffer_util:propmerge(get_config(storage_backends, []), Defaults).
 
 %% @doc return all supported index scheme
 index_scheme() ->
     Defaults = application:get_env(coffer_index, backends),
-    coffer_util:propmerge(Defaults, get_config(index_backends, [])).
+    coffer_util:propmerge(get_config(index_backends, []), Defaults).
 
 
 
