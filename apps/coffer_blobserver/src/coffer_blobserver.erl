@@ -140,10 +140,13 @@ init_storages() ->
     lists:foldl(fun({Name, StorageUri, _IndexUri}, D) ->
                 {Backend, Opts} = coffer_config:parse_uri(StorageUri,
                                                           storage),
-                case new_storage(Name, Backend, Opts) of
+                %% store the name as a binary
+                Name1 = list_to_binary(Name),
+
+                case new_storage(Name1, Backend, Opts) of
                     {ok, Storage} ->
                         lager:info("Initializing  storage: ~s~n", [Name]),
-                        dict:store(Name, Storage, D);
+                        dict:store(Name1, Storage, D);
                     Error ->
                         lager:error("Error initializing  storage: ~p~n",
                                        [Error]),

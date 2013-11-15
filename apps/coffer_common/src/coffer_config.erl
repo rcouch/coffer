@@ -44,6 +44,13 @@ parse_uri(Uri, Type) ->
                 index ->
                     proplists:get_value(Scheme, index_scheme())
             end,
+
+            %% invalid uri, fail now
+            if Backend =:= undefined ->
+                    throw({error, {invalid_uri, Uri}});
+                true -> ok
+            end,
+
             {Backend, [{path, Path},
                        {params, Params},
                        {tags, Fragments}]}
@@ -51,12 +58,18 @@ parse_uri(Uri, Type) ->
 
 %% @doc return all supported storage scheme
 storage_scheme() ->
-    Defaults = application:get_env(coffer_blobserver, backends),
+    Defaults = case application:get_env(coffer_blobserver, backends) of
+        undefined -> [];
+        {ok, Scheme} -> Scheme
+    end,
     coffer_util:propmerge(get_config(storage_backends, []), Defaults).
 
 %% @doc return all supported index scheme
 index_scheme() ->
-    Defaults = application:get_env(coffer_index, backends),
+    Defaults = case application:get_env(coffer_index, backends) of
+        undefined -> [];
+        {ok, Scheme} -> Scheme
+    end,
     coffer_util:propmerge(get_config(index_backends, []), Defaults).
 
 

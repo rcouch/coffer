@@ -20,7 +20,7 @@ handle(Req, State) ->
 
 %%
 maybe_process(<<"GET">>, Req) ->
-    Storages = coffer_blobserver:list_storages(),
+    Storages = coffer_blobserver:all_storages(),
     JsonObj = [{<<"storages">>, Storages}],
     {Json, Req1} = coffer_http_util:to_json(JsonObj, Req),
     cowboy_req:reply(200, [{<<"Content-Type">>, <<"application/json">>}],
