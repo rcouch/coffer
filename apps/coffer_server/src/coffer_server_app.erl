@@ -23,6 +23,7 @@ stop(_State) ->
 
 
 start_http() ->
+    coffer_util:require([ssl, ranch, cowboy]),
     %% get max of acceptors
     NbAcceptors = coffer_config:get_config(nb_acceptors, 100),
 
@@ -38,12 +39,13 @@ start_http() ->
             [{port, Port}, {ip, ParsedIp}]
     end,
 
-    %% final transport options
-    TransOpts = BindOpts ++ coffer_config:ssl_options(),
-
-    Transport = case coffer_config:is_ssl() of
-        true -> ranch_ssl;
-        false -> ranch_tcp
+    %% Transport options
+    {Transport, TransOpts} = case coffer_config:is_ssl() of
+        true ->
+            SslOpts = BindOpts ++ coffer_config:ssl_options(),
+            {ranch_ssl, SslOpts};
+        false ->
+            {ranch_tcp, BindOpts}
     end,
 
     start_listener(NbAcceptors, Transport, TransOpts,
@@ -52,16 +54,16 @@ start_http() ->
 
 %% start a listener
 start_listener(_, _, _, _, 0) ->
-    cf_lager:info("HTTP API not started, too much tries.~n", []),
+    lager:info("HTTP API not started, too much tries.~n", []),
     {error, http_not_started};
 start_listener(NbAcceptors, Transport, TransOpts, ProtoOpts, Tries) ->
     case ranch:start_listener(coffer_http, NbAcceptors, Transport, TransOpts,
                               cowboy_protocol, ProtoOpts) of
         {ok, _} ->
-            cf_lager:info("HTTP API started", []),
+            lager:info("HTTP API started", []),
             ok;
         {error, _} = Error ->
-            cf_lager:error("error starting the HTTP api: ~p~n", [Error]),
+            lager:error("error starting the HTTP api: ~p~n", [Error]),
             start_listener(NbAcceptors, Transport, TransOpts, ProtoOpts,
                 Tries-1);
         _ ->

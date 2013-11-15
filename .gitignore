@@ -18,6 +18,8 @@ erl_crash.dump
 *.so
 *.o
 
+deps
+
 # coffer specific
 build
 dialyzer.plt
@@ -28,7 +30,7 @@ ebin
 rel/coffer
 
 # rebar
-thirdparty/rebar/rebar
-thirdparty/rebar/inttest/rt.work
+support/rebar/rebar
+support/rebar/inttest/rt.work
 rt.work
-thirdparty/rebar/.test
+support/rebar/.test

@@ -142,10 +142,10 @@ init_storages() ->
                                                           storage),
                 case new_storage(Name, Backend, Opts) of
                     {ok, Storage} ->
-                        cf_lager:info("Initializing  storage: ~s~n", [Name]),
+                        lager:info("Initializing  storage: ~s~n", [Name]),
                         dict:store(Name, Storage, D);
                     Error ->
-                        cf_lager:error("Error initializing  storage: ~p~n",
+                        lager:error("Error initializing  storage: ~p~n",
                                        [Error]),
                         D
                 end

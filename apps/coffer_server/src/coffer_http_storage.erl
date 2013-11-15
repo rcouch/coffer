@@ -15,8 +15,8 @@ init(_Transport, Req, []) ->
     {ok, Req, undefined}.
 
 handle(Req, State) ->
-    {Method, Req2} = cf_cowboy_req:method(Req),
-    {StorageName, Req3} = cf_cowboy_req:binding(storage, Req2),
+    {Method, Req2} = cowboy_req:method(Req),
+    {StorageName, Req3} = cowboy_req:binding(storage, Req2),
     {ok, Req4} = case coffer_blobserver:get_storage(StorageName) of
         {ok, Storage} ->
              maybe_process(Method, Storage, Req3);
@@ -55,7 +55,7 @@ maybe_process(<<"POST">>, Storage, Req) ->
             StatusMessage = [{ <<"received">>, Success },
                              { <<"errors">>, Errors }],
             {Json, Req2} = coffer_http_util:to_json(StatusMessage, Req1),
-            cf_cowboy_req:reply(201,
+            cowboy_req:reply(201,
                              [{<<"Content-Type">>, <<"application/json">>}],
                              Json, Req2);
         {error, no_part, Req1} ->
@@ -70,7 +70,7 @@ terminate(_Reason, _Req, _State) ->
 
 %% enumerate blobs
 enumerate(Storage, Req) ->
-    {Limit, Req2} = case cf_cowboy_req:qs_val(<<"limit">>, Req) of
+    {Limit, Req2} = case cowboy_req:qs_val(<<"limit">>, Req) of
         {undefined, Req1} -> {?LIMIT, Req1};
         {L, Req1} -> {list_to_integer(binary_to_list(L)), Req1}
     end,
@@ -83,7 +83,7 @@ enumerate(Storage, Req) ->
             ChunkFun(<< "\n]}" >>),
             ok
     end,
-    cf_cowboy_req:reply(200, [{<<"Content-Type">>, <<"application/json">>}],
+    cowboy_req:reply(200, [{<<"Content-Type">>, <<"application/json">>}],
                         {chunked, BodyFun}, Req2).
 
 
@@ -92,7 +92,7 @@ do_enumerate(_, _, _, Count, Limit) when Count > Limit ->
 do_enumerate({ReaderFun, State}, ChunkFun, Pre, Count, Limit) ->
     case ReaderFun(State) of
         {ok, {BlobRef, Size}, NewState} ->
-            Json = cf_jsx:encode([{<<"blobref">>, BlobRef},
+            Json = jsx:encode([{<<"blobref">>, BlobRef},
                                   {<<"size">>, Size}]),
 
             ChunkFun(iolist_to_binary([Pre, Json])),
@@ -124,7 +124,7 @@ process_multipart(Storage, Req) ->
 
 
 multipart_data(Req) ->
-    case cf_cowboy_req:multipart_data(Req) of
+    case cowboy_req:multipart_data(Req) of
         {headers, Headers, Req2} ->
             {{headers, Headers}, Req2};
         {body, Data, Req2} ->
@@ -136,7 +136,7 @@ multipart_data(Req) ->
         {ok, undefined, Req2} ->
             {undefined, Req2};
         Error ->
-            cf_lager:error("Multipart unknown return value: ~p", [Error]),
+            lager:error("Multipart unknown return value: ~p", [Error]),
             Error
     end.
 
@@ -145,9 +145,9 @@ get_part(Storage, {headers, Headers}, Req, Acc) ->
     %% extract the blobref
     DispositionBinary = proplists:get_value(<<"content-disposition">>,
                                             Headers),
-    {_, Props} = cf_cowboy_multipart:content_disposition(DispositionBinary),
+    {_, Props} = cowboy_multipart:content_disposition(DispositionBinary),
     BlobRef = proplists:get_value(<<"name">>, Props),
-    cf_lager:info("uploading ~p", [BlobRef]),
+    lager:info("uploading ~p", [BlobRef]),
     %% process the part
     ReaderFun = fun(Req1) ->
             {Reply, Req2} = multipart_data(Req1),

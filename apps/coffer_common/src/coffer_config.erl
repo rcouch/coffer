@@ -24,7 +24,7 @@ get_config(Key) ->
 
 %% @doc return a config value
 get_config(Key, Default) ->
-    case application:get_env(coffer, Key) of
+    case application:get_env(coffer_server, Key) of
         {ok, Val} -> Val;
         undefined -> Default
     end.
@@ -85,7 +85,7 @@ parse_address(Addr) ->
 http_env() ->
     DispatchRules = coffer_http:dispatch_rules(),
     Dispatch = [{'_', DispatchRules}],
-    Dispatch1 = cf_cowboy_router:compile(Dispatch),
+    Dispatch1 = cowboy_router:compile(Dispatch),
     [{env, [{dispatch, Dispatch1}]}].
 
 
@@ -105,7 +105,7 @@ ssl_options() ->
                     if length(CertEntries) >= 2 ->
                             SslOpts0;
                         true ->
-                            cf_lager:error("SSL Private Key is missing", []),
+                            lager:error("SSL Private Key is missing"),
                             throw({error, missing_keyfile})
                     end;
                 KeyFile ->
@@ -145,10 +145,10 @@ ssl_options() ->
                     WithCA = SslOpts1 /= SslOpts1,
                     case WithCA of
                         false when Depth >= 1 ->
-                            cf_lager:error("Verify SSL certificate "
+                            lager:error("Verify SSL certificate "
                                     ++"enabled but file containing "
                                     ++"PEM encoded CA certificates is "
-                                    ++"missing", []),
+                                    ++"missing"),
                             throw({error, missing_cacerts});
                         _ ->
                             ok
@@ -157,7 +157,7 @@ ssl_options() ->
             end,
             FinalSslOpts;
         false ->
-            cf_lager:error("SSL enabled but PEM certificates are missing.", []),
+            lager:error("SSL enabled but PEM certificates are missing.", []),
             throw({error, missing_certs})
     end.
 

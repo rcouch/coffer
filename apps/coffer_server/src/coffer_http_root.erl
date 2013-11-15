@@ -13,18 +13,18 @@ init(_Transport, Req, []) ->
     {ok, Req, undefined}.
 
 handle(Req, State) ->
-    {Method, Req2} = cf_cowboy_req:method(Req),
+    {Method, Req2} = cowboy_req:method(Req),
     {ok, Req3} = maybe_process(Method, Req2),
     {ok, Req3, State}.
 
 %%
 maybe_process(<<"HEAD">>, Req) ->
-    cf_cowboy_req:reply(200, [{<<"Content-Type">>,
+    cowboy_req:reply(200, [{<<"Content-Type">>,
                             <<"application/json">>}], <<>>, Req);
 maybe_process(<<"GET">>, Req) ->
-    Json = cf_jsx:encode(server_info()),
+    Json = jsx:encode(server_info()),
     {Json1, Req1} = coffer_http_util:maybe_prettify_json(Json, Req),
-    ccf_owboy_req:reply(200, [{<<"Content-Type">>, <<"application/json">>}],
+    cowboy_req:reply(200, [{<<"Content-Type">>, <<"application/json">>}],
                      Json1, Req1);
 maybe_process(_, Req) ->
     coffer_http_util:not_allowed([<<"GET">>, <<"HEAD">>], Req).
