@@ -1,5 +1,5 @@
 
--module(coffer_blobserver_sup).
+-module(coffer_server_sup).
 
 -behaviour(supervisor).
 
@@ -24,6 +24,5 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    BlobServer = ?CHILD(coffer_blobserver, worker),
-    {ok, { {one_for_one, 5, 10}, [BlobServer]} }.
+    {ok, { {one_for_one, 5, 10}, []} }.
 

@@ -25,7 +25,7 @@ dialyzer.plt
 apps/coffer_blobserver/.eunit
 apps/coffer_common/.eunit
 ebin
-
+rel/coffer
 
 # rebar
 thirdparty/rebar/rebar

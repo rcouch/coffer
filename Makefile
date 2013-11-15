@@ -19,11 +19,13 @@ compile: rebar
 		-c $(BUILDDIR)/apps/ \
 		-d $(BUILDDIR)/apps/coffer_blobserver/src \
 		-d $(BUILDDIR)/apps/coffer_common/src \
+		-d $(BUILDDIR)/apps/coffer_server/src \
 		-d $(BUILDDIR)/thirdparty/cowboy/src \
 		-d $(BUILDDIR)/thirdparty/cowboy/test \
 		-d $(BUILDDIR)/thirdparty/ranch/src \
 		-d $(BUILDDIR)/thirdparty/ranch/test \
 		-d $(BUILDDIR)/thirdparty/jsx/src \
+		-d $(BUILDDIR)/thirdparty/goldrush/src \
 		-d $(BUILDDIR)/thirdparty/lager/src
 	@echo "==> build coffer"
 	@(cd $(BUILDDIR) && \
@@ -31,6 +33,12 @@ compile: rebar
 
 clean:
 	@rm -rf $(BUILDDIR)
+
+rel:
+	$(ESCRIPT) $(CURRENT)/thirdparty/reltool_util/release
+
+.PHONY: rel
+
 
 dev: rebar
 	@mkdir -p $(BUILDDIR)
@@ -43,15 +51,17 @@ dev: rebar
 		-c $(BUILDDIR)/apps/ \
 		-d $(BUILDDIR)/apps/coffer_blobserver/src \
 		-d $(BUILDDIR)/apps/coffer_common/src \
+		-d $(BUILDDIR)/apps/coffer_server/src \
 		-d $(BUILDDIR)/thirdparty/cowboy/src \
 		-d $(BUILDDIR)/thirdparty/cowboy/test \
 		-d $(BUILDDIR)/thirdparty/ranch/src \
 		-d $(BUILDDIR)/thirdparty/ranch/test \
 		-d $(BUILDDIR)/thirdparty/jsx/src \
+		-d $(BUILDDIR)/thirdparty/goldrush/src \
 		-d $(BUILDDIR)/thirdparty/lager/src
 	@echo "==> build coffer"
 	@(cd $(BUILDDIR) && \
-		$(ESCRIPT) rebar -C $(CURRENT)/rebar.config compile || exit 0)
+		$(ESCRIPT) rebar -v -C $(CURRENT)/rebar.config compile || exit 0)
 
 devclean:
 	@(cd $(BUILDDIR) && \
@@ -64,9 +74,11 @@ dialyze: dialyzer.plt
 		$(DIALYZER) --plt $(CURRENT)/dialyzer.plt -I \
 			apps/coffer_blobserver/ebin/ \
 			apps/coffer_common/ebin/ \
+			apps/coffer_server/ebin/ \
 			thirdparty/cowboy/ebin/ \
 			thirdparty/ranch/ebin/ \
 			thirdparty/jsx/ebin/ \
+			thirdparty/goldrush/ebin/ \
 			thirdparty/lager/ebin/ || exit 0)
 
 dialyzer: dialyze

@@ -1,0 +1,27 @@
+%% -*- tab-width: 4;erlang-indent-level: 4;indent-tabs-mode: nil -*-
+%% ex: ft=erlang ts=4 sw=4 et
+%%%
+%%% This file is part of coffer released under the Apache license 2.
+%%% See the NOTICE for more information.
+%%%
+{application, coffer_server,
+    [
+        {description, "coffer server"},
+        {vsn, "0.1"},
+        {registered, []},
+        {applications, [kernel,
+                        stdlib,
+                        cf_lager,
+                        crypto,
+                        public_key,
+                        ssl,
+                        coffer_blobserver]},
+        {included_applications, [coffer_common,
+                                 cf_ranch,
+                                 cf_cowboy,
+                                 cf_jsx,
+                                 cf_goldrush]},
+        {mod, { coffer_server_app, []}},
+        {env, [{bind_http, "0.0.0.0:7000"},
+               {nb_acceptors, 100}]}
+    ]}.
