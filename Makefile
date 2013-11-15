@@ -6,8 +6,6 @@ SUPPORT_DIR=$(CURRENT)/support
 ESCRIPT=escript
 DIALYZER=dialyzer
 
-SCOPE_EXTERNAL=cf_
-
 all: clean compile
 
 compile: get-deps
@@ -17,8 +15,9 @@ compile: get-deps
 		$(ESCRIPT) rebar -C $(CURRENT)/rebar.config compile || exit 0)
 
 clean:
-	@(cd $(BUILDDIR) && \
-		$(ESCRIPT) rebar -C $(CURRENT)/rebar.config clean)
+	@(test -d $(BUILDDIR) && \
+		cd $(BUILDDIR) && \
+		$(ESCRIPT) rebar -C $(CURRENT)/rebar.config clean || exit 0)
 
 rel:
 	@rm -rf rel/coffer
