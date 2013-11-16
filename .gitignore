@@ -29,7 +29,7 @@ apps/coffer_common/.euniit
 apps/coffer_/.eunit
 apps/coffer_blobserver/ebin
 apps/coffer_common/ebin
-apps/coffer_/ebin
+apps/coffer/ebin
 rel/coffer
 
 # rebar
