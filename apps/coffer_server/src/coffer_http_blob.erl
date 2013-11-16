@@ -80,8 +80,8 @@ maybe_process(<<"PUT">>, BlobRef, Storage, Req0) ->
             lager:error("problem uploading blob id ~p: ~p",
                         [BlobRef, Error]),
             coffer_http_util:error(400, Error, Req2);
-        {error, already_exists} ->
-            coffer_http_util:error(409, already_exists, Req0);
+        {error, already_exists, Req2} ->
+            coffer_http_util:error(409, already_exists, Req2);
         {error, Reason} ->
             coffer_http_util:error(Reason, Req0)
     end;
