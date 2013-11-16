@@ -12,9 +12,9 @@ dispatch_rules() ->
 
 dispatch_rules(Prefix0) ->
     Rules = [{"/", coffer_http_root, []},
-             {"/storages", coffer_http_storages, []},
+             {"/_all_storages", coffer_http_storages, []},
              {"/:storage", coffer_http_storage, []},
-             {"/:storage/stat", coffer_http_stat, []},
+             {"/:storage/_stat", coffer_http_stat, []},
              {"/:storage/:blob", coffer_http_blob, []}],
 
     case maybe_prefix(Prefix0) of
