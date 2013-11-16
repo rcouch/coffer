@@ -13,7 +13,8 @@
          receive_blob/3,
          fetch_blob/2,
          is_blob/2,
-         delete_blob/2]).
+         delete_blob/2,
+         stat/2]).
 
 %% public storage api
 -export([all_storages/0,
@@ -51,6 +52,9 @@ is_blob(#storage{backend=Backend, state=St}, BlobRef) ->
 
 delete_blob(#storage{backend=Backend, state=St}, BlobRef) ->
     Backend:delete_blob(BlobRef, St).
+
+stat(#storage{backend=Backend, state=St}, BlobRef) ->
+    Backend:stat(BlobRef, St).
 
 %%%
 %%% STORAGE API

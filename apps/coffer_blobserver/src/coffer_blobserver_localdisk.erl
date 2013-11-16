@@ -11,6 +11,7 @@
          fetch_blob/2, fetch_blob/3,
          is_blob/2,
          delete_blob/2,
+         stat/2,
          terminate/1]).
 
 
@@ -135,12 +136,49 @@ delete_blob(BlobRef, #ldst{root=Root}) ->
             end
     end.
 
+stat([], _St) ->
+    {ok, [], [], []};
+stat(BlobRefs0, #ldst{root=Root}) ->
+    %% before stating anything check the blob refs
+    BlobRefs = lists:foldl(fun(BlobRef, Acc) ->
+                    case coffer_blob:validate_blobref(BlobRef) of
+                        ok ->
+                            Acc ++ [BlobRef];
+                        error ->
+                            Acc
+                    end
+            end, [], BlobRefs0),
 
+    %% find missing
+    {Found, Missing} = lists:foldl(fun(BlobRef, {F, M}) ->
+                    BlobPath = coffer_blob:blob_path(Root, BlobRef),
+                    case filelib:is_file(BlobPath) of
+                        true ->
+                            {[{BlobRef, file_size(BlobPath)} | F], M};
+                        _ ->
+                            {F, [BlobRef | M]}
+                    end
+            end, {[], []}, BlobRefs),
+
+    {Partials, Missing1} = case Missing of
+        [] ->
+            {[], Missing};
+        _ ->
+            ToFind = [{BlobRef, temp_blob(BlobRef)} || BlobRef <- Missing],
+            lists:foldl(fun({BlobRef, TmpBlobPath}, {P, M}) ->
+                        case filelib:is_file(TmpBlobPath) of
+                            true ->
+                                {[{BlobRef, file_size(TmpBlobPath)} | P], M};
+                            _ ->
+                                {P, [BlobRef | M]}
+                        end
+                end, {[], []}, ToFind)
+    end,
+    {ok, {lists:reverse(Found), lists:reverse(Missing1),
+          lists:reverse(Partials)}}.
 
 terminate(_St) ->
     ok.
-
-
 
 %% @private
 %%
@@ -210,7 +248,6 @@ write_blob1(ReaderFun, ReaderState, Fd) ->
             file:close(Fd),
             Error
     end.
-
 
 skip_blob({ReaderFun, ReaderState}) ->
     case ReaderFun(ReaderState) of

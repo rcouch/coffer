@@ -44,7 +44,16 @@ error(Status, Reason, Req) ->
     error(Status, Reason, [], Req).
 
 error(Status, Reason, Extra, Req) ->
-    ReasonInBinary = iolist_to_binary(io_lib:format("~p", [Reason])),
+    ReasonInBinary = case Reason of
+        {error, Error} ->
+            Error;
+        _ when is_atom(Reason) ->
+            list_to_binary(atom_to_list(Reason));
+        _ when is_binary(Reason) ->
+            Reason;
+        _ ->
+            iolist_to_binary(io_lib:format("~p", [Reason]))
+    end,
     ReturnedData = [{<<"error">>, ReasonInBinary}] ++ Extra,
     {Json, Req1} = to_json(ReturnedData, Req),
     cowboy_req:reply(Status, [{<<"Content-Type">>, <<"application/json">>}],
