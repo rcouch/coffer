@@ -21,9 +21,9 @@ handle(Req, State) ->
         {ok, Storage} ->
              maybe_process(Method, Storage, Req3);
         {error, not_found} ->
-            coffer_http_util:not_found(Req);
+            coffer_http_util:not_found(Req3);
         {error, Reason} ->
-            coffer_http_util:error(Reason, Req)
+            coffer_http_util:error(Reason, Req3)
     end,
     {ok, Req4, State}.
 
@@ -34,26 +34,24 @@ maybe_process(<<"GET">>, Storage, Req) ->
 maybe_process(<<"POST">>, Storage, Req) ->
     case process_multipart(Storage, Req) of
         {ok, Received, Req1} ->
-            {Success, Errors} = lists:foldl(
-                    fun({BlobRef, Status}, {SAcc, EAcc}) ->
-                            case Status of
-                                {ok, UploadSize} ->
-                                    SAcc1 = [[
-                                                {<<"blobref">>, BlobRef},
-                                                {<<"size">>, UploadSize}]
-                                             | SAcc],
-                                    {SAcc1, EAcc};
-                                {error, Reason} ->
-                                    EAcc1 = [[
-                                                {<<"blobref">>, BlobRef},
-                                                {<<"error">>, Reason}]
-                                             | EAcc],
-
-                                    {SAcc, EAcc1}
-                            end
+            {Success, Errors} = lists:foldl(fun
+                        ({BlobRef, {ok, UploadSize}}, {SAcc, EAcc}) ->
+                            SAcc1 = [[
+                                        {<<"blobref">>, BlobRef},
+                                        {<<"size">>, UploadSize}]
+                                     | SAcc],
+                            {SAcc1, EAcc};
+                        ({BlobRef, {error, Reason}}, {SAcc, EAcc}) ->
+                            EAcc1 = [[
+                                        {<<"blobref">>, BlobRef},
+                                        {<<"error">>,
+                                         coffer_util:to_binary(Reason)}]
+                                     | EAcc],
+                            {SAcc, EAcc1}
                     end, {[], []}, Received),
             StatusMessage = [{ <<"received">>, Success },
                              { <<"errors">>, Errors }],
+
             {Json, Req2} = coffer_http_util:to_json(StatusMessage, Req1),
             cowboy_req:reply(201,
                              [{<<"Content-Type">>, <<"application/json">>}],
@@ -115,7 +113,7 @@ process_multipart(Storage, Req) ->
 
     case Reply of
         {headers, _Headers} ->
-            get_part(Storage, Reply, Req2, {[], []});
+            get_part(Storage, Reply, Req2, []);
         {eof, Req2} ->
             {error, no_part, Req2};
         {ok, undefined, Req2} ->
@@ -172,5 +170,5 @@ get_part(Storage, {headers, Headers}, Req, Acc) ->
         {headers, _} ->
             get_part(Storage, Reply, Req5, Acc2);
         _ ->
-            {Acc2, Req5}
+            {ok, Acc2, Req5}
     end.

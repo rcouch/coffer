@@ -9,6 +9,7 @@
 -export([require/1]).
 -export([propmerge/2, propmerge/3]).
 -export([gettempdir/0]).
+-export([to_binary/1]).
 
 ensure_deps_started(App) ->
     {ok, Deps} = application:get_key(App, applications),
@@ -88,4 +89,11 @@ normalize_dir(L) ->
         true ->
             Dir
     end.
-%
+
+
+to_binary(V) when is_list(V) ->
+    list_to_binary(V);
+to_binary(V) when is_binary(V) ->
+    V;
+to_binary(V) when is_atom(V) ->
+    list_to_binary(atom_to_list(V)).

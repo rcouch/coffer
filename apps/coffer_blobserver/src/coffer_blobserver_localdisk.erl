@@ -8,7 +8,9 @@
 -export([init/2,
          enumerate/1,
          receive_blob/3,
-         fetch_blob/3,
+         fetch_blob/2, fetch_blob/3,
+         is_blob/2,
+         delete_blob/2,
          terminate/1]).
 
 
@@ -20,9 +22,13 @@
 -record(ldst, {name,
                root}).
 
+-define(DEFAULT_WINDOW, 8192).
+
 init(Name, Opts) ->
     Path = proplists:get_value(path, Opts),
     ok = filelib:ensure_dir(filename:join(Path, "test")),
+    %% delete folder
+    ok = filelib:ensure_dir(filename:join([Path, ".delete", "test"])),
     {ok, #ldst{name=Name,
                root=Path}}.
 
@@ -34,7 +40,8 @@ receive_blob(BlobRef, Reader, #ldst{root=Root}) ->
        BlobPath ->
             case filelib:is_file(BlobPath) of
                 true ->
-                    {error, already_exists};
+                    {ok, NewState} = skip_blob(Reader),
+                    {error, already_exists, NewState};
                 _ ->
                     write_blob(BlobRef, BlobPath, Reader)
             end
@@ -42,17 +49,26 @@ receive_blob(BlobRef, Reader, #ldst{root=Root}) ->
 
 enumerate(#ldst{root=Root}) ->
     Self = self(),
-    EnumeratePid = spawn(?MODULE, enumerate_loop, [Self, Root]),
-    ReaderFun = fun(Pid) ->
+    {EnumeratePid, MonRef} = spawn_monitor(?MODULE, enumerate_loop,
+                                           [Self, Root]),
+    ReaderFun = fun({Pid, MRef}=St) ->
             Pid ! {next, Self},
             receive
                 {blob, {BlobRef, Size}, Pid} ->
-                    {ok, {BlobRef, Size}, Pid};
+                    {ok, {BlobRef, Size}, St};
                 {done, Pid} ->
-                    done
+                    erlang:demonitor(MRef, [flush]),
+                    done;
+                {'DOWN', _, process, Pid, Reason} ->
+                    erlang:demonitor(MRef, [flush]),
+                    {error, {enumerate_worker_died, Reason}}
             end
     end,
-    {ReaderFun, EnumeratePid}.
+    {ReaderFun, {EnumeratePid, MonRef}}.
+
+fetch_blob(BlobRef, State) ->
+    fetch_blob(BlobRef, ?DEFAULT_WINDOW, State).
+
 
 fetch_blob(BlobRef, Window, #ldst{root=Root}) ->
     ReaderFun = fun(Fd) ->
@@ -83,6 +99,42 @@ fetch_blob(BlobRef, Window, #ldst{root=Root}) ->
                     {error, not_found}
             end
     end.
+
+is_blob(BlobRef, #ldst{root=Root}) ->
+    case coffer_blob:blob_path(Root, BlobRef) of
+        error ->
+            {error, invalid_blobref};
+        BlobPath ->
+            filelib:is_file(BlobPath)
+    end.
+
+%% @todo add a watcher to garbage collect from time to time deleted
+%% files that may leak on the fs for any reason.
+delete_blob(BlobRef, #ldst{root=Root}) ->
+    case coffer_blob:blob_path(Root, BlobRef) of
+        error ->
+            {error, invalid_blobref};
+        BlobPath ->
+            case filelib:is_file(BlobPath) of
+                true ->
+                    %% if the file exist we first delete it,
+                    %% deletion will be handled asynchronously to not
+                    %% wait more than needed.
+                    DelFile = filename:join([Root,".delete",
+                                             binary_to_list(uuid:get_v4())]),
+                    case file:rename(BlobPath, DelFile) of
+                        ok ->
+                            spawn(file, delete, [DelFile]),
+                            ok;
+                        Error ->
+                            Error
+                    end;
+                false ->
+                    %% file have already been deleted ignore it
+                    ok
+            end
+    end.
+
 
 
 terminate(_St) ->
@@ -128,18 +180,21 @@ write_blob(BlobRef, BlobPath, {ReaderFun, ReaderState}) ->
     TmpBlobPath = temp_blob(BlobRef),
     case file:open(TmpBlobPath, [write, append]) of
         {ok, Fd} ->
-            {ok, NewReaderState} = write_blob1(ReaderFun, ReaderState,
-                                               Fd),
-            ok = filelib:ensure_dir(BlobPath),
-            case file:rename(TmpBlobPath, BlobPath) of
-                ok ->
-                    Size = file_size(BlobPath),
-                    {ok, Size, NewReaderState};
+            case write_blob1(ReaderFun, ReaderState, Fd) of
+                {ok, NewReaderState} ->
+                    ok = filelib:ensure_dir(BlobPath),
+                    case file:rename(TmpBlobPath, BlobPath) of
+                        ok ->
+                            Size = file_size(BlobPath),
+                            {ok, Size, NewReaderState};
+                        Error ->
+                            Error
+                    end;
                 Error ->
                     Error
             end;
         Error ->
-            Error
+            {Error, ReaderState}
     end.
 
 write_blob1(ReaderFun, ReaderState, Fd) ->
@@ -148,10 +203,24 @@ write_blob1(ReaderFun, ReaderState, Fd) ->
             file:close(Fd),
             {ok, NewReaderState};
         {ok, Bin, NewReaderState} ->
-            file:write(Fd, Bin),
-            write_blob1(ReaderFun, NewReaderState, Fd)
+            ok = file:write(Fd, Bin),
+            file:sync(Fd), %% we sync on each write
+            write_blob1(ReaderFun, NewReaderState, Fd);
+        Error ->
+            file:close(Fd),
+            Error
     end.
 
+
+skip_blob({ReaderFun, ReaderState}) ->
+    case ReaderFun(ReaderState) of
+        {ok, eob, NewReaderState} ->
+            {ok, NewReaderState};
+        {ok, _Bin, NewReaderState} ->
+            skip_blob({ReaderFun, NewReaderState});
+        Error ->
+            Error
+    end.
 
 temp_blob(BlobRef) ->
     TempName = iolist_to_binary([<<"coffer-">>, BlobRef, <<".tmp">>]),

@@ -11,7 +11,9 @@
 %%
 -export([enumerate/1,
          receive_blob/3,
-         fetch_blob/2]).
+         fetch_blob/2,
+         is_blob/2,
+         delete_blob/2]).
 
 %% public storage api
 -export([all_storages/0,
@@ -43,6 +45,12 @@ receive_blob(#storage{backend=Backend, state=St}, BlobRef, Reader) ->
 fetch_blob(#storage{backend=Backend, state=St}, BlobRef) ->
     Backend:fetch_blob(BlobRef, St).
 
+%% is blob exists
+is_blob(#storage{backend=Backend, state=St}, BlobRef) ->
+    Backend:is_blob(BlobRef, St).
+
+delete_blob(#storage{backend=Backend, state=St}, BlobRef) ->
+    Backend:delete_blob(BlobRef, St).
 
 %%%
 %%% STORAGE API
