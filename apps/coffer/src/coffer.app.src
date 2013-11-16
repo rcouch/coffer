@@ -4,7 +4,7 @@
 %%% This file is part of coffer released under the Apache license 2.
 %%% See the NOTICE for more information.
 %%%
-{application, coffer_server,
+{application, coffer,
     [
         {description, "coffer server"},
         {vsn, "0.1"},
@@ -21,7 +21,7 @@
                                  ranch,
                                  cowboy,
                                  jsx]},
-        {mod, { coffer_server_app, []}},
+        {mod, { coffer_app, []}},
         {env, [{bind_http, "0.0.0.0:7000"},
                {ssl, false},
                {nb_acceptors, 100}]}

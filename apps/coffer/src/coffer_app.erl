@@ -1,4 +1,4 @@
--module(coffer_server_app).
+-module(coffer_app).
 
 -behaviour(application).
 
@@ -11,12 +11,12 @@
 
 start(_StartType, _StartArgs) ->
     coffer_deps:ensure(),
-    coffer_util:ensure_deps_started(coffer_server),
+    coffer_util:ensure_deps_started(coffer),
 
     %% start HTTP
     ok = start_http(),
 
-    coffer_server_sup:start_link().
+    coffer_sup:start_link().
 
 stop(_State) ->
     ok.

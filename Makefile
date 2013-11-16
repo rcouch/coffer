@@ -45,7 +45,7 @@ dialyze: dialyzer.plt
 		$(DIALYZER) --plt $(CURRENT)/dialyzer.plt -I \
 			apps/coffer_blobserver/ebin/ \
 			apps/coffer_common/ebin/ \
-			apps/coffer_server/ebin/ \
+			apps/coffer/ebin/ \
 			deps/cowboy/ebin/ \
 			deps/ranch/ebin/ \
 			deps/jsx/ebin/ \

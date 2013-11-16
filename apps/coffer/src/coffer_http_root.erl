@@ -38,7 +38,7 @@ server_info() ->
       {<<"version">>, coffer_version()}].
 
 coffer_version() ->
-    case application:get_key(coffer_server, vsn) of
+    case application:get_key(coffer, vsn) of
         {ok, Version} ->
             list_to_binary(Version);
         _ ->

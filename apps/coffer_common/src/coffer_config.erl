@@ -24,7 +24,7 @@ get_config(Key) ->
 
 %% @doc return a config value
 get_config(Key, Default) ->
-    case application:get_env(coffer_server, Key) of
+    case application:get_env(coffer, Key) of
         {ok, Val} -> Val;
         undefined -> Default
     end.

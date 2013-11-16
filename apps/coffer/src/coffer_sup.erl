@@ -1,5 +1,5 @@
 
--module(coffer_server_sup).
+-module(coffer_sup).
 
 -behaviour(supervisor).
 
