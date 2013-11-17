@@ -5,18 +5,26 @@
 %%%
 -module(coffer_client).
 
--record(coffer_client, {url,
+-record(client_ctx, {url,
                         pool,
                         opts}).
 
 %% API to connect to a storage
 -export([open/1, open/2,
          close/1,
-         is_exists/2]).
+         is_exists/2,
+         fetch/2,
+         upload/1]).
+
+%% i/o api
+-export([reader_fun/1,
+         upload_fun/2,
+         process/1, process/2]).
 
 %% client uril
 -export([start/0, stop/0]).
 
+-define(LIMIT, 16#10000000).
 
 %% CLIENT API
 
@@ -36,16 +44,17 @@ open(Url, Opts) ->
     %% set client opts
     ClientOpts = [{pool, Pool} | Opts],
     %% return the client context
-    #coffer_client{url=Url,
-                   pool = Pool,
-                   opts = ClientOpts}.
+    #client_ctx{url=Url,
+                pool = Pool,
+                opts = ClientOpts}.
 
 %% @doc close a connection to a storage and stop the pool
-close(#coffer_client{pool=Pool}) ->
+close(#client_ctx{pool=Pool}) ->
     hackney:stop_pool(Pool).
 
-is_exists(#coffer_client{opts=Opts}=Ctx, BlobRef) ->
-    case hackney:head(blob_url(BlobRef), [] <<>>, Opts) of
+%% @doc test if a blob is already available on the storage
+is_exists(#client_ctx{opts=Opts}=Ctx, BlobRef) ->
+    hackney:head(blob_url(Client, BlobRef), [] <<>>, Opts) of
         {ok, 200, _, Client} ->
             hackney:skip_body(Client),
             true;
@@ -55,6 +64,80 @@ is_exists(#coffer_client{opts=Opts}=Ctx, BlobRef) ->
         Error ->
             Error
     end.
+
+%% @doc fetch a blob from the storage
+fetch(#client_ctx{opts=Opts}=Ctx, BlobRef) ->
+    Resp = hackney:get(blob_url(Client, BlobRef), [], <<>>, Opts),
+    case process_response(Resp) of
+        {ok, 200, _Hdr, Client} ->
+            ReaderFun = fun ?MODULE:reader_fun/1,
+            {ok, {ReaderFun, Client}};
+        {ok, _, _, _} ->
+            {error, {uknown_resp, Resp}};
+        {error, _} = Error ->
+            Error
+    end.
+
+%% @doc upload a blob to the storage
+upload(#client_ctx{url=Url, opts=Opts}) ->
+    case hackney:post(Url, [], stream_multipart, Opts) of
+        {ok, Client} ->
+            WriterFun = fun ?MODULE:upload_fun/2,
+            {ok, {WriterFun, Client}};
+        Error ->
+            Error
+    end.
+
+
+%% I/O functions
+
+%% process read fun
+process({Fun, State}) ->
+    Fun(State).
+
+%% process write fun
+process({Fun, State}, Msg) ->
+    Fun(State, Msg).
+
+%% reeade function used to fetch a body from a storage
+reader_fun(Client) ->
+    case hackney:stream_body(Client) of
+        {ok, Data, Client2} ->
+            {ok, Data, Client2};
+        {done, Client2} ->
+            eob;
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
+%% upload function used to send a blob to a storge using the multipart
+%% api.
+upload_fun(Client, done) ->
+    Resp = hackney_multipart:stream(eof, Client),
+    case process_response(Resp) of
+        {ok, 201, _, Client} ->
+            case hackney:body(Client) of
+                {ok, Body, _} ->
+                    Decoded = jsx:decode(Body),
+                    {ok, Decoded};
+                Error ->
+                    Error
+            end;
+        {ok, _, _, _} ->
+            {error, {uknown_resp, Resp}};
+        Error ->
+            Error
+    end.
+
+upload_fun(Client, {start, BlobRef}) ->
+    hackney_multipart:stream({data, {start, BlobRef, BlobRef,
+                                     <<"application/octet-stream">>}});
+
+upload_fun(Client, Bin) ->
+    hackney_multipart:stream({data, Bin});
+
+upload_fun(Client, eob) ->
+    hackney_multipart:stream({data, eof}, Client).
 
 
 %%% CLIENT URIL
@@ -73,10 +156,32 @@ stop() ->
 
 %% @private
 %%
-blob_url(Url, {HashType, Hash}) ->
-    blob_url(Url, coffer_util:to_binary(HashType),
+%%
+
+%% make the blob url
+blob_url(Ctx, {HashType, Hash}) ->
+    blob_url(Ctx, coffer_util:to_binary(HashType),
              coffer_util:to_binary(Hash));
-blob_url(Url, BlobRef) when is_list(BlobRef) ->
-    blob_url(Url, list_to_binary(BlobRef));
-blob_url(#coffer_client{url=Url}, BlobRef) ->
+blob_url(Ctx, BlobRef) when is_list(BlobRef) ->
+    blob_url(Ctx, list_to_binary(BlobRef));
+blob_url(##client_ctx{url=Url}{url=Url}, BlobRef) ->
     << Url/binary, "/", BlobRef/binary >>.
+
+
+%% process the response and skip the body on usual suspect
+process_response({ok, 404, _Hdrs, Client})
+process_response({ok, 404, _Hdrs, Client}) ->
+    hackney:skip_body(Client),
+    {error, not_found};
+process_response({ok, 409, _Hdrs, Client}) ->
+    hackney:skip_body(Client),
+    {error, already_exists};
+process_response({ok, Status, Hdrs, Client}=Resp) ->
+    case lists:member(Status, [200, 201, 202]) of
+        true ->
+            Resp;
+        false ->
+            {error, Resp}
+    end;
+process_response(Error) ->
+    Error.

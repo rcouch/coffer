@@ -16,7 +16,7 @@
 
 start(_StartType, _StartArgs) ->
     coffer_deps:ensure(),
-    coffer_util:ensure_deps_started(coffer),
+    coffer_util:ensure_deps_started(coffer_client),
     coffer_client_sup:start_link().
 
 stop(_State) ->
