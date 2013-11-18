@@ -21,7 +21,7 @@
                 salt,
                 hackney
                 ]},
-        {included_applications, ["mimetypes"],
+        {included_applications, ["mimetypes"]},
         {mod, { coffer_client_app, []}},
         {env, []}
     ]}.
