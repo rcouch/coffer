@@ -28,7 +28,8 @@ stop(_State) ->
 
 
 start_http() ->
-    coffer_util:require([ssl, ranch, cowlib, cowboy]),
+    coffer_util:require([ssl, ranch, cowlib, cowboy, mimetypes, hackney,
+                         coffer_client]),
     %% get max of acceptors
     NbAcceptors = coffer_config:get_config(nb_acceptors, 100),
 
