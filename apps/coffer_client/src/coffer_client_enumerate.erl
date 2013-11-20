@@ -31,13 +31,13 @@ wait_blobs({key, <<"blobs">>}, {_, Blob, Q}) ->
     {wait_list, Blob, Q};
 wait_blobs({key, _}, St) ->
     St;
-wait_blobs(end_json, {_, _, _, Q}) ->
+wait_blobs(end_json, {_, _, Q}) ->
     Q.
 
-wait_list(start_list, {_, Blob, Q}) ->
+wait_list(start_array, {_, Blob, Q}) ->
     {wait_blob, Blob, Q};
 
-wait_list(end_list, {_, Blob, Q}) ->
+wait_list(end_array, {_, Blob, Q}) ->
     {wait_blobs, Blob, Q}.
 
 wait_blob(start_object, {Fun, _, Q}) ->
@@ -48,10 +48,10 @@ wait_blob({key, <<"size">>}, {_, Blob, Q}) ->
     {wait_size, Blob, Q};
 wait_blob({key, _}, St) ->
     St;
-wait_blob(stop_object, {_, Blob, Q}) ->
+wait_blob(end_object, {_, Blob, Q}) ->
     Q1 = queue:in(Blob, Q),
     {wait_blob, {<<>>, -1}, Q1};
-wait_blob(end_list, {_, _, Q}) ->
+wait_blob(end_array, {_, _, Q}) ->
     {wait_blobs, {<<>>, -1}, Q};
 wait_blob(_, St) ->
     St.

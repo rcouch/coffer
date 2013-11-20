@@ -20,7 +20,6 @@
 %% i/o api
 -export([reader_fun/1,
          upload_fun/2,
-         process/1, process/2,
          enumerate_fun/1]).
 
 %% client uril
@@ -67,7 +66,10 @@ is_exists(#client_ctx{opts=Opts}=Ctx, BlobRef) ->
             Error
     end.
 
-%% @doc fetch a blob from the storage
+%% @doc fetch a blob from the storage, return a {ReaderFun, State} tuple
+%% where the function return {ok, Chunk, NewState} when there is still
+%% some data to fetch, eob at the end of the binary or {error, Error}
+%% when an error happen
 fetch(#client_ctx{opts=Opts}=Ctx, BlobRef) ->
     Resp = hackney:get(blob_url(Ctx, BlobRef), [], <<>>, Opts),
     case process_response(Resp) of
@@ -80,7 +82,7 @@ fetch(#client_ctx{opts=Opts}=Ctx, BlobRef) ->
             Error
     end.
 
-%% @doc upload a blob to the storage
+%% @doc upload a blob to the storage, refurn a writer fun
 %% @todo handle the expect header to get errors as fast as possible
 upload(#client_ctx{url=Url, opts=Opts}) ->
     case hackney:post(Url, [], stream_multipart, Opts) of
@@ -91,6 +93,7 @@ upload(#client_ctx{url=Url, opts=Opts}) ->
             Error
     end.
 
+%% @doc enumerate blobs on the remote. return a {ReaderFun, State} tuple
 enumerate(Ctx) ->
     enumerate(Ctx, [{limit, ?LIMIT}]).
 
@@ -103,7 +106,7 @@ enumerate(#client_ctx{opts=Opts}=Ctx, Params) ->
     Resp = hackney:get(Url, [], <<>>, Opts),
     case process_response(Resp) of
         {ok, 200, _, Ctx2} ->
-            EnumerateFun = jsx:encoder(coffer_client_enumerate, [],
+            EnumerateFun = jsx:decoder(coffer_client_enumerate, [],
                                        [explicit_end]),
 
             case do_enumerate(Ctx2, EnumerateFun) of
@@ -119,15 +122,7 @@ enumerate(#client_ctx{opts=Opts}=Ctx, Params) ->
 
 %% I/O functions
 
-%% process read fun
-process({Fun, State}) ->
-    Fun(State).
-
-%% process write fun
-process({Fun, State}, Msg) ->
-    Fun(State, Msg).
-
-%% reeade function used to fetch a body from a storage
+%% reade function used to fetch a body from a storage
 reader_fun(Ctx) ->
     case hackney:stream_body(Ctx) of
         {ok, Data, Ctx2} ->
@@ -181,6 +176,9 @@ enumerate_fun(Q) ->
             enumerate_fun(Q2)
     end.
 
+%% do the enumeration, we read each chunks coming, and parse them on the
+%% fly. This is the less efficient way to do since we are storing
+%% everything in ram, in a queue.
 do_enumerate(Ctx, Fun) ->
     case hackney:stream_body(Ctx) of
         {ok, Data, Ctx2} ->
@@ -205,8 +203,6 @@ do_enumerate(Ctx, Fun) ->
         Error ->
                 Error
     end.
-
-
 
 %%% CLIENT URIL
 
