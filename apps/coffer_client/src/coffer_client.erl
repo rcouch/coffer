@@ -94,6 +94,9 @@ upload(#client_ctx{url=Url, opts=Opts}) ->
     end.
 
 %% @doc enumerate blobs on the remote. return a {ReaderFun, State} tuple
+%% @todo improve the way we fetch the blobs infos from the remote,
+%% we should keep be able to fetch and parse the results in // while
+%% reading them.
 enumerate(Ctx) ->
     enumerate(Ctx, [{limit, ?LIMIT}]).
 
