@@ -255,7 +255,7 @@ process_response(Error) ->
 
 %% make an url
 make_url(#client_ctx{url=Url}, Path, Query) ->
-    Query1 = cowlib_qs:qs(Query),
+    Query1 = cow_qs:qs(Query),
     binary_to_list(
         iolist_to_binary(
             [Url, <<"/">>,
