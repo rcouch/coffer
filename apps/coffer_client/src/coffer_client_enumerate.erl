@@ -20,7 +20,7 @@ init(_) ->
     {wait_blobs, {<<>>, -1}, queue:new()}.
 
 handle_event(Event, {Fun, _, _}=St) ->
-    Fun(Event, St).
+    ?MODULE:Fun(Event, St).
 
 
 wait_blobs(start_object, St) ->

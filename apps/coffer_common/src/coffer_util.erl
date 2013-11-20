@@ -96,4 +96,6 @@ to_binary(V) when is_list(V) ->
 to_binary(V) when is_binary(V) ->
     V;
 to_binary(V) when is_atom(V) ->
-    list_to_binary(atom_to_list(V)).
+    list_to_binary(atom_to_list(V));
+to_binary(V) when is_integer(V) ->
+    list_to_binary(integer_to_list(V)).

@@ -97,7 +97,7 @@ enumerate(Ctx) ->
 enumerate(#client_ctx{opts=Opts}=Ctx, Params) ->
     %% for now ww only have one option to parse
     Limit = proplists:get_value(limit, Params, ?LIMIT),
-    QueryParams = [{<<"limit">>, Limit}],
+    QueryParams = [{<<"limit">>, coffer_util:to_binary(Limit)}],
 
     Url = make_url(Ctx, "", QueryParams),
     Resp = hackney:get(Url, [], <<>>, Opts),
