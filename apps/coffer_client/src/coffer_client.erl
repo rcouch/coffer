@@ -14,12 +14,14 @@
          close/1,
          is_exists/2,
          fetch/2,
-         upload/1]).
+         upload/1,
+         enumerate/1, enumerate/2]).
 
 %% i/o api
 -export([reader_fun/1,
          upload_fun/2,
-         process/1, process/2]).
+         process/1, process/2,
+         enumerate_fun/1]).
 
 %% client uril
 -export([start/0, stop/0]).
@@ -79,6 +81,7 @@ fetch(#client_ctx{opts=Opts}=Ctx, BlobRef) ->
     end.
 
 %% @doc upload a blob to the storage
+%% @todo handle the expect header to get errors as fast as possible
 upload(#client_ctx{url=Url, opts=Opts}) ->
     case hackney:post(Url, [], stream_multipart, Opts) of
         {ok, Ctx1} ->
@@ -88,6 +91,31 @@ upload(#client_ctx{url=Url, opts=Opts}) ->
             Error
     end.
 
+enumerate(Ctx) ->
+    enumerate(Ctx, [{limit, ?LIMIT}]).
+
+enumerate(#client_ctx{opts=Opts}=Ctx, Params) ->
+    %% for now ww only have one option to parse
+    Limit = proplists:get_value(limit, Params, ?LIMIT),
+    QueryParams = [{<<"limit">>, Limit}],
+
+    Url = make_url(Ctx, "", QueryParams),
+    Resp = hackney:get(Url, [], <<>>, Opts),
+    case process_response(Resp) of
+        {ok, 200, _, Ctx2} ->
+            EnumerateFun = jsx:encoder(coffer_client_enumerate, [],
+                                       [explicit_end]),
+
+            case do_enumerate(Ctx2, EnumerateFun) of
+                {ok, Q} ->
+                    ReaderFun = fun ?MODULE:enumerate_fun/1,
+                    {ReaderFun, Q};
+                Error ->
+                    Error
+            end;
+        Error ->
+            Error
+    end.
 
 %% I/O functions
 
@@ -140,6 +168,46 @@ upload_fun(Ctx, eob) ->
 upload_fun(Ctx, Bin) when is_binary(Bin) ->
     hackney_multipart:stream({data, Bin}, Ctx).
 
+
+enumerate_fun(Q) ->
+    case queue:out(Q) of
+        {empty, _Q2} ->
+            done;
+        {{value, {BlobRef, Size}=BlobInfo}, Q2}
+                when BlobRef =/= <<>>, Size > 0 ->
+            {ok, BlobInfo, Q2};
+        {{value, _}, Q2} ->
+            %% ignore the result, look for the next one.
+            enumerate_fun(Q2)
+    end.
+
+do_enumerate(Ctx, Fun) ->
+    case hackney:stream_body(Ctx) of
+        {ok, Data, Ctx2} ->
+            case Fun(Data) of
+                {incomplete, Fun2} ->
+                    do_enumerate(Ctx2, Fun2);
+                badarg ->
+                    {error, badarg};
+                Q ->
+                    hackney:skip_body(Ctx2),
+                    {ok, Q}
+            end;
+        {done, _} ->
+            case Fun(end_stream) of
+                {incomplete, _} ->
+                    {error, incomplete};
+                badarg ->
+                    {error, badarg};
+                Q ->
+                    {ok, Q}
+            end;
+        Error ->
+                Error
+    end.
+
+
+
 %%% CLIENT URIL
 
 %% @doc Start the coffer_client application. Useful when testing using the shell.
@@ -184,3 +252,13 @@ process_response({ok, Status, _Hdrs, _Ctx}=Resp) ->
     end;
 process_response(Error) ->
     Error.
+
+%% make an url
+make_url(#client_ctx{url=Url}, Path, Query) ->
+    Query1 = cowlib_qs:qs(Query),
+    binary_to_list(
+        iolist_to_binary(
+            [Url, <<"/">>,
+             Path,
+             [ [<<"?">>, Query1] || Query1 =/= [] ]
+            ])).

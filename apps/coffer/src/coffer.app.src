@@ -19,6 +19,7 @@
                         coffer_blobserver]},
         {included_applications, [coffer_common,
                                  ranch,
+                                 cowlib,
                                  cowboy,
                                  jsx]},
         {mod, { coffer_app, []}},
