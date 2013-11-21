@@ -105,7 +105,7 @@ enumerate(#client_ctx{opts=Opts}=Ctx, Params) ->
     Limit = proplists:get_value(limit, Params, ?LIMIT),
     QueryParams = [{<<"limit">>, coffer_util:to_binary(Limit)}],
 
-    Url = make_url(Ctx, "", QueryParams),
+    Url = hackney_url:make_url(Ctx, "", QueryParams),
     Resp = hackney:get(Url, [], <<>>, Opts),
     case process_response(Resp) of
         {ok, 200, _, Ctx2} ->
@@ -251,13 +251,3 @@ process_response({ok, Status, _Hdrs, _Ctx}=Resp) ->
     end;
 process_response(Error) ->
     Error.
-
-%% make an url
-make_url(#client_ctx{url=Url}, Path, Query) ->
-    Query1 = cow_qs:qs(Query),
-    binary_to_list(
-        iolist_to_binary(
-            [Url, <<"/">>,
-             Path,
-             [ [<<"?">>, Query1] || Query1 =/= [] ]
-            ])).
