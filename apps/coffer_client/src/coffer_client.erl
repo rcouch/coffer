@@ -85,7 +85,8 @@ fetch(#client_ctx{opts=Opts}=Ctx, BlobRef) ->
 %% @doc upload a blob to the storage, refurn a writer fun
 %% @todo handle the expect header to get errors as fast as possible
 upload(#client_ctx{url=Url, opts=Opts}) ->
-    case hackney:post(Url, [], stream_multipart, Opts) of
+    case hackney:post(Url, [{<<"Expect">>, <<"100-continue">>}],
+                      stream_multipart, Opts) of
         {ok, Ctx1} ->
             WriterFun = fun ?MODULE:upload_fun/2,
             {ok, {WriterFun, Ctx1}};
