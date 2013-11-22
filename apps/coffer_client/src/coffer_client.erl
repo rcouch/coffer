@@ -38,29 +38,21 @@ open(Url) ->
 %% options for it. A special pool_opts property has been added to create
 %% the client pool and pass needed options to it.
 open(Url, Opts) ->
-    %% each client maintain its own pool
-    PoolName = list_to_atom(binary_to_list(Url)),
-    PoolOpts = proplists:get_value(pool_opts, Opts, [{pool_size, 10}]),
-    {ok, Pool} = hackney:start_pool(PoolName, PoolOpts),
-    %% set client opts
-    CtxOpts = [{pool, Pool} | Opts],
-    %% return the client context
-    #client_ctx{url=Url,
-                pool = Pool,
-                opts = CtxOpts}.
+    #client_ctx{url=Url, opts = Opts}.
 
 %% @doc close a connection to a storage and stop the pool
-close(#client_ctx{pool=Pool}) ->
-    hackney:stop_pool(Pool).
+%% do nothing for now
+close(_Client) ->
+    ok.
 
 %% @doc test if a blob is already available on the storage
 is_exists(#client_ctx{opts=Opts}=Ctx, BlobRef) ->
     case hackney:head(blob_url(Ctx, BlobRef), [], <<>>, Opts) of
-        {ok, 200, _, Ctx1} ->
-            hackney:skip_body(Ctx1),
+        {ok, 200, _, Client} ->
+            hackney:skip_body(Client),
             true;
-        {ok, 404, _, Ctx1} ->
-            hackney:skip_body(Ctx1),
+        {ok, 404, _, Client} ->
+            hackney:skip_body(Client),
             false;
         Error ->
             Error
@@ -73,9 +65,9 @@ is_exists(#client_ctx{opts=Opts}=Ctx, BlobRef) ->
 fetch(#client_ctx{opts=Opts}=Ctx, BlobRef) ->
     Resp = hackney:get(blob_url(Ctx, BlobRef), [], <<>>, Opts),
     case process_response(Resp) of
-        {ok, 200, _Hdr, Ctx1} ->
+        {ok, 200, _Hdr, Client} ->
             ReaderFun = fun ?MODULE:reader_fun/1,
-            {ok, {ReaderFun, Ctx1}};
+            {ok, {ReaderFun, Client}};
         {ok, _, _, _} ->
             {error, {uknown_resp, Resp}};
         {error, _} = Error ->
@@ -87,9 +79,9 @@ fetch(#client_ctx{opts=Opts}=Ctx, BlobRef) ->
 upload(#client_ctx{url=Url, opts=Opts}) ->
     case hackney:post(Url, [{<<"Expect">>, <<"100-continue">>}],
                       stream_multipart, Opts) of
-        {ok, Ctx1} ->
+        {ok, Client} ->
             WriterFun = fun ?MODULE:upload_fun/2,
-            {ok, {WriterFun, Ctx1}};
+            {ok, {WriterFun, Client}};
         Error ->
             Error
     end.
@@ -101,19 +93,19 @@ upload(#client_ctx{url=Url, opts=Opts}) ->
 enumerate(Ctx) ->
     enumerate(Ctx, [{limit, ?LIMIT}]).
 
-enumerate(#client_ctx{opts=Opts}=Ctx, Params) ->
+enumerate(#client_ctx{url=Url, opts=Opts}, Params) ->
     %% for now ww only have one option to parse
     Limit = proplists:get_value(limit, Params, ?LIMIT),
     QueryParams = [{<<"limit">>, coffer_util:to_binary(Limit)}],
 
-    Url = hackney_url:make_url(Ctx, "", QueryParams),
-    Resp = hackney:get(Url, [], <<>>, Opts),
+    FinalUrl = hackney_url:make_url(Url, "", QueryParams),
+    Resp = hackney:get(FinalUrl, [], <<>>, Opts),
     case process_response(Resp) of
-        {ok, 200, _, Ctx2} ->
+        {ok, 200, _, Client} ->
             EnumerateFun = jsx:decoder(coffer_client_enumerate, [],
                                        [explicit_end]),
 
-            case do_enumerate(Ctx2, EnumerateFun) of
+            case do_enumerate(Client, EnumerateFun) of
                 {ok, Q} ->
                     ReaderFun = fun ?MODULE:enumerate_fun/1,
                     {ReaderFun, Q};
@@ -127,11 +119,11 @@ enumerate(#client_ctx{opts=Opts}=Ctx, Params) ->
 %% I/O functions
 
 %% reade function used to fetch a body from a storage
-reader_fun(Ctx) ->
-    case hackney:stream_body(Ctx) of
-        {ok, Data, Ctx2} ->
-            {ok, Data, Ctx2};
-        {done, _Ctx2} ->
+reader_fun(Client) ->
+    case hackney:stream_body(Client) of
+        {ok, Data, Client2} ->
+            {ok, Data, Client2};
+        {done, _Client2} ->
             eob;
         {error, Reason} ->
             {error, Reason}
@@ -139,11 +131,11 @@ reader_fun(Ctx) ->
 
 %% upload function used to send a blob to a storge using the multipart
 %% api.
-upload_fun(Ctx, done) ->
-    Resp = hackney_multipart:stream(eof, Ctx),
-    case process_response(Resp) of
-        {ok, 201, _, Ctx} ->
-            case hackney:body(Ctx) of
+upload_fun(Client, done) ->
+    Resp = hackney_multipart:stream(eof, Client),
+    case process_response(Client) of
+        {ok, 201, _, Client1} ->
+            case hackney:body(Client1) of
                 {ok, Body, _} ->
                     Decoded = jsx:decode(Body),
                     {ok, Decoded};
@@ -156,16 +148,16 @@ upload_fun(Ctx, done) ->
             Error
     end;
 
-upload_fun(Ctx, {start, BlobRef}) ->
+upload_fun(Client, {start, BlobRef}) ->
     hackney_multipart:stream({data, {start, BlobRef, BlobRef,
                                      <<"application/octet-stream">>}},
-                             Ctx);
+                             Client);
 
-upload_fun(Ctx, eob) ->
-    hackney_multipart:stream({data, eof}, Ctx);
+upload_fun(Client, eob) ->
+    hackney_multipart:stream({data, eof}, Client);
 
-upload_fun(Ctx, Bin) when is_binary(Bin) ->
-    hackney_multipart:stream({data, Bin}, Ctx).
+upload_fun(Client, Bin) when is_binary(Bin) ->
+    hackney_multipart:stream({data, Bin}, Client).
 
 
 enumerate_fun(Q) ->
@@ -183,16 +175,16 @@ enumerate_fun(Q) ->
 %% do the enumeration, we read each chunks coming, and parse them on the
 %% fly. This is the less efficient way to do since we are storing
 %% everything in ram, in a queue.
-do_enumerate(Ctx, Fun) ->
-    case hackney:stream_body(Ctx) of
-        {ok, Data, Ctx2} ->
+do_enumerate(Client, Fun) ->
+    case hackney:stream_body(Client) of
+        {ok, Data, Client2} ->
             case Fun(Data) of
                 {incomplete, Fun2} ->
-                    do_enumerate(Ctx2, Fun2);
+                    do_enumerate(Client2, Fun2);
                 badarg ->
                     {error, badarg};
                 Q ->
-                    hackney:skip_body(Ctx2),
+                    hackney:skip_body(Client2),
                     {ok, Q}
             end;
         {done, _} ->
