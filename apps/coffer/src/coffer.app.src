@@ -23,6 +23,7 @@
                                  cowboy,
                                  jsx,
                                  mimetypes,
+                                 dispcount,
                                  hackney,
                                  coffer_client]},
         {mod, { coffer_app, []}},
