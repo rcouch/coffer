@@ -1,0 +1,27 @@
+%% -*- tab-width: 4;erlang-indent-level: 4;indent-tabs-mode: nil -*-
+%% ex: ft=erlang ts=4 sw=4 et
+%%%
+%%% This file is part of coffer released under the Apache license 2.
+%%% See the NOTICE for more information.
+%%%
+
+{application, coffer_client,
+    [
+        {description, "coffer client lib"},
+        {vsn, "0.1"},
+        {registered, []},
+        {applications, [
+                kernel,
+                stdlib,
+                goldrush,
+                lager,
+                crypto,
+                public_key,
+                ssl,
+                salt,
+                hackney
+                ]},
+        {included_applications, [mimetypes, cowlib, dispcount]},
+        {mod, { coffer_client_app, []}},
+        {env, []}
+    ]}.

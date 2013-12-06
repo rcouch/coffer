@@ -1,3 +1,8 @@
+%%% -*- erlang -*-
+%%%
+%%% This file is part of coffer released under the Apache license 2.
+%%% See the NOTICE for more information.
+%%%
 -module(coffer_app).
 
 -behaviour(application).
@@ -23,7 +28,8 @@ stop(_State) ->
 
 
 start_http() ->
-    coffer_util:require([ssl, ranch, cowboy]),
+    coffer_util:require([ssl, ranch, cowlib, cowboy, mimetypes, hackney,
+                         coffer_client]),
     %% get max of acceptors
     NbAcceptors = coffer_config:get_config(nb_acceptors, 100),
 
