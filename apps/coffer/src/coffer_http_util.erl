@@ -31,10 +31,10 @@ not_allowed(AllowedMethods, Req) ->
     ),
     AllowedMethodsWithComa = iolist_to_binary(AllowedMethodsWithComaList),
     Extra = [{<<"Allow">>, AllowedMethodsWithComa}],
-    error(405, [{<<"error">>, <<"not_allowed">>}], Extra, Req).
+    error(405, <<"not_allowed">>, Extra, Req).
 
 not_found(Req) ->
-    error(404, [{<<"error">>, <<"not found">>}], Req).
+    error(404, <<"not found">>, Req).
 
 error(Reason, Req) ->
     error(500, Reason, [], Req).
