@@ -105,8 +105,7 @@ maybe_process(<<"DELETE">>, BlobRef, Storage, Req) ->
     end;
 
 maybe_process(_, _, _, Req) ->
-    coffer_http_util:not_allowed([<<"HEAD">>, <<"GET">>, <<"PUT">>,
-                                  <<"DELETE">>], Req).
+    coffer_http_util:not_allowed(<<"HEAD, GET, PUT, DELETE">>, Req).
 
 terminate(_Reason, _Req, _State) ->
     ok.

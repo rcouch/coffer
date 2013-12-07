@@ -12,26 +12,9 @@
 -export([to_json/2]).
 -export([maybe_prettify_json/2]).
 
+-spec not_allowed(binary(), Req) -> {ok, Req} when Req::cowboy_req:req().
 not_allowed(AllowedMethods, Req) ->
-    AddCommaFunc = fun(Element, Acc) ->
-        case Acc of
-            [<<>>] ->
-                [Element|Acc];
-            _ ->
-                [Element,<<",">>|Acc]
-        end
-	end,
-    ReversedAllowedMethodsWithComaList = lists:foldl(
-        AddCommaFunc,
-        [<<"">>],
-        AllowedMethods
-    ),
-    AllowedMethodsWithComaList = lists:reverse(
-            ReversedAllowedMethodsWithComaList
-    ),
-    AllowedMethodsWithComa = iolist_to_binary(AllowedMethodsWithComaList),
-    Extra = [{<<"Allow">>, AllowedMethodsWithComa}],
-    error(405, <<"not_allowed">>, Extra, Req).
+    error(405, <<"not_allowed">>, [{<<"Allow">>, AllowedMethods}], Req).
 
 not_found(Req) ->
     error(404, <<"not found">>, Req).
