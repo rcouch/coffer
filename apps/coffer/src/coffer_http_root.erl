@@ -27,7 +27,7 @@ maybe_process(<<"GET">>, Req) ->
     cowboy_req:reply(200, [{<<"Content-Type">>, <<"application/json">>}],
                      Json1, Req1);
 maybe_process(_, Req) ->
-    coffer_http_util:not_allowed([<<"GET">>, <<"HEAD">>], Req).
+    coffer_http_util:not_allowed(<<"GET, HEAD">>, Req).
 
 terminate(_Reason, _Req, _State) ->
     ok.

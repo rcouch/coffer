@@ -37,7 +37,7 @@ handle_stat(<<"POST">>, Storage, Req) ->
     BlobRefs = [BlobRef || {_, BlobRef} <- KVs],
     stat_response(BlobRefs, Storage, Req1);
 handle_stat(_, _, Req) ->
-    coffer_http_util:not_allowed([<<"GET">>, <<"POST">>], Req).
+    coffer_http_util:not_allowed(<<"GET, POST">>, Req).
 
 terminate(_Reason, _Req, _State) ->
     ok.

@@ -60,7 +60,7 @@ maybe_process(<<"POST">>, Storage, Req) ->
             coffer_http_util:ok(Req1)
     end;
 maybe_process(_, _, Req) ->
-    coffer_http_util:not_allowed([<<"HEAD">>, <<"GET">>, <<"POST">>], Req).
+    coffer_http_util:not_allowed(<<"HEAD, GET, POST">>, Req).
 
 terminate(_Reason, _Req, _State) ->
     ok.
